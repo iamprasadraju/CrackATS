@@ -1,0 +1,15 @@
+# Crack ATS - Resume Generation Tool
+# Core dependencies (Python 3.8+)
+# No required external packages - uses only Python standard library
+
+# Optional dependencies:
+playwright>=1.40.0  # For headless browser fallback when scraping fails
+
+# Configuration:
+# 1. Set GROQ_API_KEY environment variable for AI generation feature
+#    export GROQ_API_KEY="your-api-key-from-console.groq.com"
+# 2. Or create a .env file (copy .env.example)
+
+# Development dependencies:
+# ruff>=0.1.0       # For linting
+# pytest>=7.0.0     # For testing
