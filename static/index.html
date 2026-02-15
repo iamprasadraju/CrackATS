@@ -3,446 +3,764 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Scraper</title>
+    <title>CrackATS - AI Resume Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --border: rgba(255,255,255,0.1);
+        }
+        
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar-content {
+            max-width: 1400px;
+            margin: 0 auto;
             display: flex;
-            justify-content: center;
             align-items: center;
-            padding: 20px;
+            justify-content: space-between;
         }
-        .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 900px;
-            padding: 40px;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 28px;
-        }
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-        .tabs {
+        
+        .logo {
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .tab {
-            padding: 10px 20px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            color: #666;
-            border-radius: 6px;
-            transition: all 0.3s;
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            -webkit-text-fill-color: white;
         }
-        .tab:hover {
-            background: #f5f5f5;
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
         }
-        .tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
         }
-        .tab-content {
-            display: none;
+        
+        .nav-link:hover {
+            color: var(--text);
         }
-        .tab-content.active {
-            display: block;
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 4rem 2rem;
+            max-width: 800px;
+            margin: 0 auto;
         }
+        
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+        
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero p {
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem 4rem;
+        }
+        
+        /* Input Card */
+        .input-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        
+        .input-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .input-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .badge {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary-light);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
         .input-group {
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
-        input[type="url"], input[type="text"], select, textarea {
+        
+        input[type="url"] {
             flex: 1;
-            padding: 14px 18px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-            font-family: inherit;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.2s;
         }
-        textarea {
-            min-height: 200px;
-            resize: vertical;
-        }
-        input:focus, select:focus, textarea:focus {
+        
+        input[type="url"]:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
-        button {
-            padding: 14px 28px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        
+        input[type="url"]::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        button:hover:not(:disabled) {
+        
+        .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 30px -10px var(--primary);
         }
-        button:disabled {
-            opacity: 0.6;
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
-        button.secondary {
-            background: #6c757d;
+        
+        .supported-sites {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
         }
-        button.secondary:hover:not(:disabled) {
-            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.4);
+        
+        .site-chip {
+            background: var(--surface-light);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
         }
-        .spinner {
+        
+        .site-chip:hover {
+            border-color: var(--primary);
+            color: var(--text);
+        }
+        
+        /* Loading */
+        .loading {
             display: none;
             text-align: center;
-            padding: 40px;
+            padding: 3rem;
         }
-        .spinner.active {
+        
+        .loading.active {
             display: block;
         }
-        .spinner-circle {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--surface-light);
+            border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin: 0 auto 1.5rem;
         }
+        
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
-        .result {
+        
+        .loading p {
+            color: var(--text-muted);
+        }
+        
+        /* Alert */
+        .alert {
             display: none;
-            margin-top: 20px;
-        }
-        .result.active {
-            display: block;
-        }
-        .result-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px 10px 0 0;
-        }
-        .result-title {
-            font-size: 22px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        .result-company {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-        .result-body {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 0 0 10px 10px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .result-body pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-family: inherit;
-            line-height: 1.6;
-            color: #333;
-        }
-        .error {
-            display: none;
-            background: #fee;
-            color: #c33;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border-left: 4px solid #c33;
-        }
-        .error.active {
-            display: block;
-        }
-        .success {
-            display: none;
-            background: #efe;
-            color: #2a2;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border-left: 4px solid #2a2;
-        }
-        .success.active {
-            display: block;
-        }
-        .examples {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-        .examples h3 {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        .example-url {
-            display: block;
-            color: #667eea;
-            font-size: 13px;
-            margin: 5px 0;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        .example-url:hover {
-            text-decoration: underline;
-        }
-        .files-list {
-            margin-top: 20px;
-        }
-        .file-item {
-            display: flex;
-            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            margin-top: 1rem;
             align-items: center;
-            padding: 12px 16px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #e0e0e0;
+            gap: 0.75rem;
         }
-        .file-name {
-            font-weight: 500;
-            color: #333;
-        }
-        .file-actions {
+        
+        .alert.active {
             display: flex;
-            gap: 8px;
         }
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 6px;
+        
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
         }
-        .editor {
-            margin-top: 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
+        
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+        
+        /* Results */
+        .results {
+            display: none;
+            margin-bottom: 2rem;
+        }
+        
+        .results.active {
+            display: block;
+        }
+        
+        .job-header {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(79, 70, 229, 0.2));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .job-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .job-company {
+            color: var(--text-muted);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
             overflow: hidden;
         }
-        .editor-header {
-            background: #f8f9fa;
-            padding: 10px 16px;
-            border-bottom: 1px solid #e0e0e0;
+        
+        .card-header {
+            background: var(--surface-light);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-icon {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .btn-icon:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .code-block {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.8125rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .cover-letter {
+            line-height: 1.8;
+            color: var(--text-muted);
+        }
+        
+        /* Previous Resumes */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .resume-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        
+        .resume-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .resume-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+        
+        .resume-card.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
+        .resume-card-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+        
+        .resume-card-meta {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+        
+        /* Template Section */
+        .template-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+        }
+        
+        .template-info h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .template-info p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+        
+        .btn-secondary {
+            background: var(--surface-light);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .editor-title {
+        
+        .modal-title {
+            font-size: 1.25rem;
             font-weight: 600;
-            color: #333;
         }
-        .editor-body textarea {
-            width: 100%;
+        
+        .modal-close {
+            background: none;
             border: none;
-            border-radius: 0;
-            min-height: 400px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .checkbox-group {
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin: 15px 0;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s;
         }
-        .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
+        
+        .modal-close:hover {
+            background: var(--surface-light);
+            color: var(--text);
         }
-        .checkbox-group label {
-            cursor: pointer;
-            color: #666;
+        
+        .modal-body {
+            flex: 1;
+            overflow: hidden;
         }
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin: 20px 0 15px 0;
+        
+        .modal-body textarea {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            background: var(--bg);
+            border: none;
+            padding: 1.5rem;
+            color: var(--text);
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.875rem;
+            line-height: 1.7;
+            resize: none;
+        }
+        
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+        
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                CrackATS
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link">Dashboard</a>
+                <a href="#" class="nav-link">History</a>
+                <a href="#" class="nav-link">Settings</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>AI-Powered <span>Resume Generator</span></h1>
+        <p>Transform any job posting into a tailored resume and cover letter in seconds using advanced AI.</p>
+    </div>
+
     <div class="container">
-        <h1>🔍 Job Scraper</h1>
-        <p class="subtitle">Scrape jobs, generate AI resumes, and edit templates</p>
+        <!-- Input Section -->
+        <div class="input-card">
+            <div class="input-header">
+                <h2>🎯 New Job</h2>
+                <span class="badge">AI-POWERED</span>
+            </div>
+            
+            <div class="input-group">
+                <input type="url" id="jobUrl" placeholder="Paste job posting URL from LinkedIn, Indeed, or any site...">
+                <button class="btn-primary" id="generateBtn" onclick="generateResume()">
+                    <span>Generate</span>
+                    →
+                </button>
+            </div>
+            
+            <div class="supported-sites">
+                <span>Quick start:</span>
+                <span class="site-chip" onclick="fillUrl('https://linkedin.com/jobs/view/4306126317')">LinkedIn Example</span>
+                <span class="site-chip" onclick="fillUrl('https://indeed.com/viewjob?jk=abc123')">Indeed Example</span>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Scraping job details and crafting your resume...</p>
+                <p style="font-size: 0.875rem; margin-top: 0.5rem;">This takes 30-60 seconds</p>
+            </div>
+
+            <div class="alert alert-success" id="successAlert">
+                <span>✓</span>
+                <span id="successMessage">Resume generated successfully!</span>
+            </div>
+
+            <div class="alert alert-error" id="errorAlert">
+                <span>✕</span>
+                <span id="errorMessage">Error message</span>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results" id="resultsSection">
+            <div class="job-header">
+                <div class="job-title" id="jobTitle">Job Title</div>
+                <div class="job-company" id="jobCompany">Company Name</div>
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📄 Resume.tex</span>
+                        <div class="card-actions">
+                            <button class="btn-icon" onclick="copyResume()">Copy</button>
+                            <button class="btn-icon" onclick="downloadResume()">Download</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="code-block" id="resumeContent"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">✉️ Cover Letter</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="cover-letter" id="coverLetterContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Previous Resumes -->
+        <div class="section-header">
+            <h2>📚 Previous Resumes</h2>
+        </div>
         
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('scrape')">1. Scrape Job</button>
-            <button class="tab" onclick="switchTab('generate')">2. Generate AI Content</button>
-            <button class="tab" onclick="switchTab('templates')">3. Edit Templates</button>
-        </div>
-
-        <!-- Scrape Tab -->
-        <div id="scrape-tab" class="tab-content active">
-            <div class="input-group">
-                <input type="url" id="scrapeUrl" placeholder="https://linkedin.com/jobs/view/...">
-                <button id="scrapeBtn" onclick="scrapeJob()">Scrape</button>
-            </div>
-
-            <div class="checkbox-group">
-                <input type="checkbox" id="autoGenerate" checked>
-                <label for="autoGenerate">Auto-generate AI resume & cover letter</label>
-            </div>
-
-            <div class="spinner" id="scrapeSpinner">
-                <div class="spinner-circle"></div>
-                <p>Scraping job details...</p>
-            </div>
-
-            <div class="error" id="scrapeError"></div>
-            <div class="success" id="scrapeSuccess"></div>
-
-            <div class="result" id="scrapeResult">
-                <div class="result-header">
-                    <div class="result-title" id="resultTitle"></div>
-                    <div class="result-company" id="resultCompany"></div>
-                </div>
-                <div class="result-body">
-                    <pre id="resultDescription"></pre>
-                </div>
-            </div>
-
-            <div class="examples">
-                <h3>Supported sites:</h3>
-                <span class="example-url" onclick="fillScrapeUrl('https://linkedin.com/jobs/view/4306126317')">LinkedIn</span>
-                <span class="example-url" onclick="fillScrapeUrl('https://indeed.com/viewjob?jk=abc123')">Indeed</span>
-                <span class="example-url" onclick="fillScrapeUrl('file:///path/to/job.html')">Local HTML file</span>
+        <div class="resume-grid" id="resumeGrid">
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <p>No resumes generated yet</p>
             </div>
         </div>
 
-        <!-- Generate Tab -->
-        <div id="generate-tab" class="tab-content">
-            <div class="section-title">Generate AI Resume & Cover Letter</div>
-            <p style="color: #666; margin-bottom: 20px;">Select a job folder to generate tailored content using AI.</p>
-            
-            <div id="folderList" class="files-list">
-                <p style="color: #999;">Loading folders...</p>
+        <!-- Template Bar -->
+        <div class="template-bar">
+            <div class="template-info">
+                <h3>🎨 Master Resume Template</h3>
+                <p>Edit your base template used for all AI-generated resumes</p>
             </div>
-
-            <div class="spinner" id="generateSpinner">
-                <div class="spinner-circle"></div>
-                <p>Generating AI content... This may take 30-60 seconds</p>
-            </div>
-
-            <div class="error" id="generateError"></div>
-            <div class="success" id="generateSuccess"></div>
-
-            <div class="checkbox-group">
-                <input type="checkbox" id="cleanupTemplates" checked>
-                <label for="cleanupTemplates">Clean up template files after generation</label>
-            </div>
+            <button class="btn-secondary" onclick="openTemplateModal()">Edit Template</button>
         </div>
+    </div>
 
-        <!-- Templates Tab -->
-        <div id="templates-tab" class="tab-content">
-            <div class="section-title">Edit Resume Template</div>
-            <p style="color: #666; margin-bottom: 20px;">Edit your master resume template. Changes will be used for future AI generations.</p>
-            
-            <div class="input-group">
-                <button onclick="loadTemplate()">Load Template</button>
-                <button class="secondary" onclick="saveTemplate()">Save Template</button>
+    <!-- Template Modal -->
+    <div class="modal-overlay" id="templateModal" onclick="closeModalOnBackdrop(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit Master Resume Template</span>
+                <button class="modal-close" onclick="closeTemplateModal()">&times;</button>
             </div>
-
-            <div class="editor">
-                <div class="editor-header">
-                    <span class="editor-title">resume-template.tex</span>
-                    <span style="color: #999; font-size: 12px;">LaTeX format</span>
-                </div>
-                <div class="editor-body">
-                    <textarea id="templateEditor" placeholder="Click 'Load Template' to load your master resume...
-
-This template should contain:
-- Your contact information
-- Education
-- Skills
-- Work experience (bullet points)
-
-The AI will tailor this content to match the job description."></textarea>
-                </div>
+            <div class="modal-body">
+                <textarea id="templateContent" placeholder="Loading template..."></textarea>
             </div>
-
-            <div class="spinner" id="templateSpinner">
-                <div class="spinner-circle"></div>
-                <p>Loading template...</p>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeTemplateModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveTemplate()">Save Changes</button>
             </div>
-
-            <div class="error" id="templateError"></div>
-            <div class="success" id="templateSuccess"></div>
         </div>
     </div>
 
     <script>
-        // Tab switching
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(tabName + '-tab').classList.add('active');
-            
-            if (tabName === 'generate') {
-                loadFolders();
-            }
+        let currentFolder = '';
+        let currentResume = '';
+        let currentCoverLetter = '';
+
+        function fillUrl(url) {
+            document.getElementById('jobUrl').value = url;
         }
 
-        function fillScrapeUrl(url) {
-            document.getElementById('scrapeUrl').value = url;
+        function showSuccess(message) {
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successAlert').classList.add('active');
+            document.getElementById('errorAlert').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('successAlert').classList.remove('active');
+            }, 5000);
         }
 
-        // Scrape function
-        async function scrapeJob() {
-            const url = document.getElementById('scrapeUrl').value.trim();
-            const autoGen = document.getElementById('autoGenerate').checked;
-            const btn = document.getElementById('scrapeBtn');
-            const spinner = document.getElementById('scrapeSpinner');
-            const result = document.getElementById('scrapeResult');
-            const error = document.getElementById('scrapeError');
-            const success = document.getElementById('scrapeSuccess');
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorAlert').classList.add('active');
+            document.getElementById('successAlert').classList.remove('active');
+        }
+
+        async function generateResume() {
+            const url = document.getElementById('jobUrl').value.trim();
+            const btn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('resultsSection');
 
             if (!url) {
-                showError('scrapeError', 'Please enter a URL');
+                showError('Please enter a job posting URL');
                 return;
             }
 
             btn.disabled = true;
-            spinner.classList.add('active');
-            result.classList.remove('active');
-            error.classList.remove('active');
-            success.classList.remove('active');
+            loading.classList.add('active');
+            results.classList.remove('active');
+            document.getElementById('errorAlert').classList.remove('active');
+            document.getElementById('successAlert').classList.remove('active');
 
             try {
                 const formData = new FormData();
                 formData.append('url', url);
-                formData.append('auto_generate', autoGen);
 
-                const response = await fetch('/scrape', {
+                const response = await fetch('/scrape-and-generate', {
                     method: 'POST',
                     body: formData
                 });
@@ -450,161 +768,164 @@ The AI will tailor this content to match the job description."></textarea>
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.detail || 'Failed to scrape job');
+                    throw new Error(data.detail || 'Failed to generate resume');
                 }
 
-                // Show result
-                document.getElementById('resultTitle').textContent = data.title || 'Unknown Title';
-                document.getElementById('resultCompany').textContent = data.company || 'Unknown Company';
-                document.getElementById('resultDescription').textContent = data.description || 'No description available';
-                result.classList.add('active');
+                currentFolder = data.folder;
+                currentResume = data.resume_tex;
+                currentCoverLetter = data.cover_letter;
 
-                let msg = `Created folder: ${data.folder}`;
-                if (data.generated) {
-                    msg += '\n✓ AI resume and cover letter generated!';
-                }
-                showSuccess('scrapeSuccess', msg);
+                document.getElementById('jobTitle').textContent = data.title || 'Unknown Title';
+                document.getElementById('jobCompany').textContent = data.company || 'Unknown Company';
+                document.getElementById('resumeContent').textContent = data.resume_tex;
+                document.getElementById('coverLetterContent').textContent = data.cover_letter;
+
+                results.classList.add('active');
+                showSuccess(`Generated resume for ${data.folder}`);
+                
+                loadPreviousResumes();
+                
+                setTimeout(() => {
+                    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
 
             } catch (err) {
-                showError('scrapeError', err.message);
+                showError(err.message);
             } finally {
                 btn.disabled = false;
-                spinner.classList.remove('active');
+                loading.classList.remove('active');
             }
         }
 
-        // Load folders for generate tab
-        async function loadFolders() {
-            const container = document.getElementById('folderList');
-            
+        async function loadPreviousResumes() {
+            const grid = document.getElementById('resumeGrid');
+
             try {
-                const response = await fetch('/list-folders');
-                const folders = await response.json();
-                
-                if (folders.length === 0) {
-                    container.innerHTML = '<p style="color: #999;">No job folders found. Scrape a job first!</p>';
+                const response = await fetch('/list-resumes');
+                const data = await response.json();
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state" style="grid-column: 1 / -1;">
+                            <div class="empty-icon">📋</div>
+                            <p>No resumes generated yet</p>
+                        </div>
+                    `;
                     return;
                 }
 
-                container.innerHTML = folders.map(f => `
-                    <div class="file-item">
-                        <span class="file-name">${f.name}</span>
-                        <div class="file-actions">
-                            <button class="btn-small" onclick="generateForFolder('${f.path}')">Generate AI Content</button>
-                        </div>
+                grid.innerHTML = data.map(r => `
+                    <div class="resume-card ${r.folder === currentFolder ? 'active' : ''}" onclick="viewResume('${r.folder}', this)">
+                        <div class="resume-card-title">${r.folder.replace(/-/g, ' ')}</div>
+                        <div class="resume-card-meta">Click to view resume</div>
                     </div>
                 `).join('');
             } catch (err) {
-                container.innerHTML = `<p style="color: #c33;">Error loading folders: ${err.message}</p>`;
+                grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><p>Error loading resumes</p></div>`;
             }
         }
 
-        // Generate content for folder
-        async function generateForFolder(folderPath) {
-            const cleanup = document.getElementById('cleanupTemplates').checked;
-            const spinner = document.getElementById('generateSpinner');
-            const error = document.getElementById('generateError');
-            const success = document.getElementById('generateSuccess');
-
-            spinner.classList.add('active');
-            error.classList.remove('active');
-            success.classList.remove('active');
-
+        async function viewResume(folder, element) {
             try {
-                const formData = new FormData();
-                formData.append('folder', folderPath);
-                formData.append('cleanup', cleanup);
+                const [resumeRes, coverRes] = await Promise.all([
+                    fetch(`/resume/${encodeURIComponent(folder)}`),
+                    fetch(`/cover-letter/${encodeURIComponent(folder)}`)
+                ]);
 
-                const response = await fetch('/generate', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.detail || 'Generation failed');
+                if (!resumeRes.ok) {
+                    throw new Error('Failed to load resume');
                 }
 
-                showSuccess('generateSuccess', 
-                    `✓ Resume.tex generated\n✓ Cover_Letter.txt generated\n\nFolder: ${folderPath}`);
-                loadFolders(); // Refresh list
+                const resumeData = await resumeRes.json();
+                currentFolder = folder;
+                currentResume = resumeData.content;
+
+                document.getElementById('resumeContent').textContent = resumeData.content;
+                document.getElementById('jobTitle').textContent = folder.replace(/-/g, ' ');
+                document.getElementById('jobCompany').textContent = 'Previous Generation';
+
+                if (coverRes.ok) {
+                    const coverData = await coverRes.json();
+                    document.getElementById('coverLetterContent').textContent = coverData.content;
+                } else {
+                    document.getElementById('coverLetterContent').textContent = 'Cover letter not available';
+                }
+
+                document.getElementById('resultsSection').classList.add('active');
+
+                document.querySelectorAll('.resume-card').forEach(card => card.classList.remove('active'));
+                element.classList.add('active');
+
+                document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
             } catch (err) {
-                showError('generateError', err.message);
-            } finally {
-                spinner.classList.remove('active');
+                showError(err.message);
             }
         }
 
-        // Template functions
+        function copyResume() {
+            navigator.clipboard.writeText(currentResume).then(() => {
+                showSuccess('Resume copied to clipboard!');
+            });
+        }
+
+        function downloadResume() {
+            const blob = new Blob([currentResume], { type: 'text/x-tex' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentFolder || 'Resume'}.tex`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function openTemplateModal() {
+            loadTemplate();
+            document.getElementById('templateModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeTemplateModal() {
+            document.getElementById('templateModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function closeModalOnBackdrop(event) {
+            if (event.target === event.currentTarget) {
+                closeTemplateModal();
+            }
+        }
+
         async function loadTemplate() {
-            const spinner = document.getElementById('templateSpinner');
-            const error = document.getElementById('templateError');
-            const editor = document.getElementById('templateEditor');
-
-            spinner.classList.add('active');
-            error.classList.remove('active');
-
             try {
                 const response = await fetch('/template');
                 const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.detail || 'Failed to load template');
-                }
-
-                editor.value = data.content || '';
+                document.getElementById('templateContent').value = data.content;
             } catch (err) {
-                showError('templateError', err.message);
-            } finally {
-                spinner.classList.remove('active');
+                showError('Failed to load template');
             }
         }
 
         async function saveTemplate() {
-            const content = document.getElementById('templateEditor').value;
-            const error = document.getElementById('templateError');
-            const success = document.getElementById('templateSuccess');
-
-            error.classList.remove('active');
-            success.classList.remove('active');
-
+            const content = document.getElementById('templateContent').value;
             try {
                 const formData = new FormData();
                 formData.append('content', content);
-
-                const response = await fetch('/template', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.detail || 'Failed to save template');
-                }
-
-                showSuccess('templateSuccess', 'Template saved successfully!');
+                await fetch('/template', { method: 'POST', body: formData });
+                showSuccess('Template saved!');
+                closeTemplateModal();
             } catch (err) {
-                showError('templateError', err.message);
+                showError('Failed to save template');
             }
         }
 
-        function showError(elementId, message) {
-            const el = document.getElementById(elementId);
-            el.textContent = message;
-            el.classList.add('active');
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPreviousResumes();
+        });
 
-        function showSuccess(elementId, message) {
-            const el = document.getElementById(elementId);
-            el.textContent = message;
-            el.classList.add('active');
-        }
-
-        // Allow Enter key to submit
-        document.getElementById('scrapeUrl').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') scrapeJob();
+        document.getElementById('jobUrl').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') generateResume();
         });
     </script>
 </body>
