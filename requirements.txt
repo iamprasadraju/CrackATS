@@ -1,6 +1,10 @@
 # Crack ATS - Resume Generation Tool
 # Core dependencies (Python 3.8+)
-# No required external packages - uses only Python standard library
+
+# Web UI dependencies (required for web interface)
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6  # Required for form data parsing
 
 # Optional dependencies:
 playwright>=1.40.0  # For headless browser fallback when scraping fails
