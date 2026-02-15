@@ -3,15 +3,17 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI, Form, HTTPException
+from fastapi import FastAPI, Form, HTTPException, Query
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import processor
+from database import Application, ApplicationDB
 from scraper import scrape_job as scraper_scrape_job
 
-app = FastAPI(title="Job Scraper")
+app = FastAPI(title="CrackATS")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 executor = ThreadPoolExecutor(max_workers=3)
 
@@ -98,6 +100,23 @@ async def scrape_and_generate(url: str = Form(...)):
 
         try:
             gen_result = _generate_ai_content(job, result["folder_path"])
+
+            # Auto-create application entry
+            from datetime import datetime
+            import json
+
+            app = Application(
+                company=job.get("company", ""),
+                title=job.get("title", ""),
+                url=url,
+                status="applied",
+                date_applied=datetime.now().strftime("%Y-%m-%d"),
+                resume_path=str(Path(result["folder_path"]) / "Resume.tex"),
+                cover_letter_path=str(Path(result["folder_path"]) / "Cover_Letter.txt"),
+                tags=json.dumps(["ai-generated"]),
+            )
+            app_id = ApplicationDB.create(app)
+
             return {
                 "success": True,
                 "title": job.get("title", ""),
@@ -106,6 +125,7 @@ async def scrape_and_generate(url: str = Form(...)):
                 "folder": result["folder_name"],
                 "resume_tex": gen_result["tailored_resume"],
                 "cover_letter": gen_result["cover_letter"],
+                "application_id": app_id,
             }
         except ValueError as e:
             if "GROQ_API_KEY" in str(e):
@@ -186,9 +206,222 @@ async def save_template(content: str = Form(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/save-document")
+async def save_document(content: str = Form(...), path: str = Form(...)):
+    """Save edited resume or cover letter document."""
+    try:
+        file_path = Path(path)
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+
+        # Security: Ensure path is within current working directory
+        cwd = Path.cwd()
+        try:
+            file_path.relative_to(cwd)
+        except ValueError:
+            raise HTTPException(status_code=403, detail="Invalid file path")
+
+        file_path.write_text(content, encoding="utf-8")
+        return {"success": True, "message": "Document saved successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ========== Job Application Tracking Endpoints ==========
+
+
+def cleanup_orphaned_applications():
+    """Remove database entries for applications whose folders no longer exist."""
+    applications = ApplicationDB.get_all()
+    deleted_count = 0
+
+    for app in applications:
+        # Check if the resume file exists
+        resume_path = app.get("resume_path")
+        if resume_path:
+            if not Path(resume_path).exists():
+                # Resume file doesn't exist, delete this application
+                ApplicationDB.delete(app["id"])
+                deleted_count += 1
+                continue
+
+        # Also check cover letter if no resume path
+        cover_path = app.get("cover_letter_path")
+        if cover_path and not Path(cover_path).exists():
+            ApplicationDB.delete(app["id"])
+            deleted_count += 1
+
+    return deleted_count
+
+
+@app.get("/api/applications")
+async def get_applications(
+    status: Optional[str] = Query(None, description="Filter by status"),
+    cleanup: bool = Query(True, description="Remove orphaned entries"),
+):
+    """Get all job applications, optionally filtered by status."""
+    if status and status not in Application.STATUSES:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid status. Must be one of: {', '.join(Application.STATUSES)}"
+        )
+
+    # Clean up orphaned entries by default
+    if cleanup:
+        cleanup_orphaned_applications()
+
+    applications = ApplicationDB.get_all(status=status)
+    return applications
+
+
+@app.post("/api/applications/cleanup")
+async def cleanup_applications():
+    """Manually trigger cleanup of orphaned applications."""
+    deleted_count = cleanup_orphaned_applications()
+    return {"message": f"Cleaned up {deleted_count} orphaned applications", "deleted_count": deleted_count}
+
+
+@app.get("/api/applications/{app_id}")
+async def get_application(app_id: int):
+    """Get a specific application by ID."""
+    app = ApplicationDB.get_by_id(app_id)
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return app.to_dict()
+
+
+@app.post("/api/applications")
+async def create_application(
+    company: str = Form(...),
+    title: str = Form(...),
+    url: str = Form(""),
+    status: str = Form("saved"),
+    notes: str = Form(""),
+    date_applied: str = Form(""),
+    salary: str = Form(""),
+    location: str = Form(""),
+    tags: str = Form("[]"),
+):
+    """Create a new job application."""
+    if status not in Application.STATUSES:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid status. Must be one of: {', '.join(Application.STATUSES)}"
+        )
+
+    import json
+
+    app = Application(
+        company=company,
+        title=title,
+        url=url,
+        status=status,
+        notes=notes,
+        date_applied=date_applied if date_applied else None,
+        salary=salary,
+        location=location,
+        tags=json.loads(tags) if tags else [],
+    )
+
+    app_id = ApplicationDB.create(app)
+    return {"id": app_id, "message": "Application created successfully"}
+
+
+@app.put("/api/applications/{app_id}")
+async def update_application(
+    app_id: int,
+    company: Optional[str] = Form(None),
+    title: Optional[str] = Form(None),
+    url: Optional[str] = Form(None),
+    status: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    date_applied: Optional[str] = Form(None),
+    salary: Optional[str] = Form(None),
+    location: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+):
+    """Update an existing application."""
+    existing = ApplicationDB.get_by_id(app_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    if status and status not in Application.STATUSES:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid status. Must be one of: {', '.join(Application.STATUSES)}"
+        )
+
+    import json
+
+    updates = {}
+    if company is not None:
+        updates["company"] = company
+    if title is not None:
+        updates["title"] = title
+    if url is not None:
+        updates["url"] = url
+    if status is not None:
+        updates["status"] = status
+    if notes is not None:
+        updates["notes"] = notes
+    if date_applied is not None:
+        updates["date_applied"] = date_applied if date_applied else None
+    if salary is not None:
+        updates["salary"] = salary
+    if location is not None:
+        updates["location"] = location
+    if tags is not None:
+        updates["tags"] = json.loads(tags) if tags else []
+
+    ApplicationDB.update(app_id, **updates)
+    return {"message": "Application updated successfully"}
+
+
+@app.delete("/api/applications/{app_id}")
+async def delete_application(app_id: int):
+    """Delete an application."""
+    existing = ApplicationDB.get_by_id(app_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    ApplicationDB.delete(app_id)
+    return {"message": "Application deleted successfully"}
+
+
+@app.get("/api/applications/stats/overview")
+async def get_application_stats():
+    """Get application statistics."""
+    stats = ApplicationDB.get_stats()
+    total = sum(stats.values())
+    return {
+        "total": total,
+        "by_status": stats,
+        "response_rate": round(
+            (stats.get("phone_screen", 0) + stats.get("interview", 0) + stats.get("offer", 0)) / total * 100, 1
+        )
+        if total > 0
+        else 0,
+    }
+
+
+@app.post("/api/applications/{app_id}/status")
+async def update_application_status(app_id: int, status: str = Form(...)):
+    """Quick endpoint to update just the status."""
+    if status not in Application.STATUSES:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid status. Must be one of: {', '.join(Application.STATUSES)}"
+        )
+
+    existing = ApplicationDB.get_by_id(app_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    ApplicationDB.update(app_id, status=status)
+    return {"message": f"Status updated to {status}"}
 
 
 if __name__ == "__main__":

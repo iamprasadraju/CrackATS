@@ -176,8 +176,8 @@ code templates/resume-template.tex
 San Francisco, CA \textbullet\ \href{mailto:john@example.com}{john@example.com}
 
 \section*{Summary}
-Full-stack developer with 5 years of experience building scalable web applications. 
-Specialized in Python, React, and cloud infrastructure. Passionate about clean code 
+Full-stack developer with 5 years of experience building scalable web applications.
+Specialized in Python, React, and cloud infrastructure. Passionate about clean code
 and system design.
 
 \section*{Experience}
