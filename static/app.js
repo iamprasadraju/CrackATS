@@ -499,14 +499,27 @@ async function loadDocument(type) {
     }
     
     try {
-        const pathParts = path.split('/');
+        // Normalize path separators for cross-platform compatibility
+        const normalizedPath = path.replace(/\\/g, '/');
+        const pathParts = normalizedPath.split('/');
         const folder = pathParts[pathParts.length - 2];
+        
+        console.log('Loading document:', { type, path, normalizedPath, folder });
         
         const endpoint = type === 'resume' 
             ? `/resume/${encodeURIComponent(folder)}`
             : `/cover-letter/${encodeURIComponent(folder)}`;
         
+        console.log('Fetching endpoint:', endpoint);
+        
         const response = await fetch(endpoint);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Server error:', errorData);
+            throw new Error(errorData.detail || `HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
         
         currentDocContent = data.content;
@@ -517,7 +530,13 @@ async function loadDocument(type) {
             document.getElementById('docContent').innerHTML = `<div style="white-space: pre-wrap; line-height: 1.8;">${escapeHtml(data.content)}</div>`;
         }
     } catch (err) {
-        document.getElementById('docContent').innerHTML = `<div style="color: var(--error);">Failed to load ${type}</div>`;
+        console.error('Failed to load document:', err);
+        document.getElementById('docContent').innerHTML = `
+            <div style="color: var(--error); padding: 2rem;">
+                <strong>Failed to load ${type}</strong><br>
+                <small style="color: var(--text-secondary);">${err.message}</small>
+            </div>
+        `;
         currentDocContent = '';
     }
 }
