@@ -22,7 +22,7 @@ let originalTemplateContent = '';
 const STATUS_COLUMNS = [
     { id: 'saved', label: 'Saved', color: '#9ca3af' },
     { id: 'applied', label: 'Applied', color: '#64748b' },
-    { id: 'phone_screen', label: 'Phone Screen', color: '#475569' },
+    { id: 'shortlisted', label: 'Shortlisted', color: '#475569' },
     { id: 'interview', label: 'Interview', color: '#334155' },
     { id: 'technical', label: 'Technical', color: '#1e293b' },
     { id: 'offer', label: 'Offer', color: '#059669' },
@@ -146,7 +146,9 @@ async function loadApplications() {
 
         const board = document.getElementById('kanbanBoard');
         board.innerHTML = STATUS_COLUMNS.map(col => `
-            <div class="kanban-column" data-status="${col.id}">
+            <div class="kanban-column" data-status="${col.id}"
+                ondragover="handleColumnDragOver(event)"
+                ondrop="handleColumnDrop(event, '${col.id}')">
                 <div class="kanban-column-header">
                     <span class="kanban-column-title">${col.label}</span>
                     <span class="kanban-count" id="count-${col.id}">${byStatus[col.id].length}</span>
@@ -212,12 +214,47 @@ function handleDragEnd(event) {
 
 function handleDragOver(event) {
     event.preventDefault();
+    event.stopPropagation();
     event.dataTransfer.dropEffect = 'move';
+}
+
+// Column-level drag handlers as fallback
+function handleColumnDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'move';
+    console.log('Column drag over:', event.currentTarget.dataset.status);
+}
+
+function handleColumnDrop(event, newStatus) {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log('Column drop triggered for status:', newStatus);
+    
+    // Delegate to main drop handler
+    const appId = event.dataTransfer.getData('text/plain');
+    if (!appId) {
+        console.error('No appId in column drop data');
+        return;
+    }
+    
+    // Find the kanban-cards container for this status
+    const cardsContainer = document.querySelector(`.kanban-cards[data-status="${newStatus}"]`);
+    if (cardsContainer) {
+        // Create a synthetic event for the main handler
+        handleDrop({ 
+            preventDefault: () => {},
+            currentTarget: cardsContainer,
+            dataTransfer: event.dataTransfer 
+        }, newStatus);
+    }
 }
 
 function handleDragEnter(event) {
     event.preventDefault();
     const cardsContainer = event.currentTarget;
+    const status = cardsContainer.dataset.status;
+    console.log(`Drag enter on column: ${status}`);
     cardsContainer.classList.add('drag-over');
 }
 
@@ -230,14 +267,26 @@ function handleDragLeave(event) {
 
 async function handleDrop(event, newStatus) {
     event.preventDefault();
+    console.log(`Drop event triggered for status: ${newStatus}`);
+    
     const cardsContainer = event.currentTarget;
     cardsContainer.classList.remove('drag-over');
     
     const appId = event.dataTransfer.getData('text/plain');
-    if (!appId) return;
+    console.log(`App ID from drag data: ${appId}`);
+    
+    if (!appId) {
+        console.error('No appId found in drag data');
+        return;
+    }
     
     const card = document.querySelector(`[data-app-id="${appId}"]`);
-    if (!card) return;
+    console.log(`Found card:`, card);
+    
+    if (!card) {
+        console.error(`No card found with appId: ${appId}`);
+        return;
+    }
     
     const currentStatus = card.dataset.currentStatus;
     
@@ -250,14 +299,21 @@ async function handleDrop(event, newStatus) {
         const formData = new FormData();
         formData.append('status', newStatus);
         
+        console.log('DEBUG FRONTEND: Sending status update:', { appId, newStatus });
+        
         const response = await fetch(`/api/applications/${appId}/status`, {
             method: 'POST',
             body: formData
         });
         
+        console.log('DEBUG FRONTEND: Response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error('Failed to update status');
+            const errorData = await response.json();
+            console.error('Server error:', errorData);
+            throw new Error(`Failed to update status: ${errorData.detail || response.statusText}`);
         }
+        console.log('Status updated successfully');
         
         showDragSuccess(card);
         loadStats();
@@ -640,6 +696,88 @@ async function saveHomeTemplate() {
     } catch (err) {
         showError('Failed to save template: ' + err.message);
     }
+}
+
+// ===== Database Management =====
+async function refreshApplications() {
+    // Refresh the applications view from database
+    console.log('Refreshing applications...');
+    
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.textContent = 'Refreshing...';
+    btn.disabled = true;
+    
+    try {
+        await loadApplications();
+        await loadStats();
+        showSuccess('Applications refreshed!');
+    } catch (err) {
+        console.error('Failed to refresh:', err);
+        showError('Failed to refresh applications');
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+// Reset Database Modal Functions
+function openResetModal() {
+    document.getElementById('resetModal').classList.add('active');
+    document.getElementById('resetConfirmInput').value = '';
+    document.getElementById('resetError').style.display = 'none';
+    document.getElementById('resetConfirmInput').focus();
+}
+
+function closeResetModal() {
+    document.getElementById('resetModal').classList.remove('active');
+    document.getElementById('resetConfirmInput').value = '';
+    document.getElementById('resetError').style.display = 'none';
+}
+
+async function executeReset() {
+    const confirmation = document.getElementById('resetConfirmInput').value.trim();
+    
+    if (confirmation !== 'DELETE') {
+        document.getElementById('resetError').style.display = 'block';
+        return;
+    }
+    
+    closeResetModal();
+    console.log('Resetting database...');
+    
+    try {
+        const formData = new FormData();
+        formData.append('confirm', 'true');
+        
+        const response = await fetch('/api/applications/reset', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Reset failed');
+        }
+        
+        const result = await response.json();
+        
+        // Clear the board
+        document.getElementById('kanbanBoard').innerHTML = '';
+        
+        // Reload to show empty state
+        await loadApplications();
+        await loadStats();
+        
+        showSuccess(`Database reset complete! Deleted ${result.deleted_count} applications.`);
+    } catch (err) {
+        console.error('Failed to reset database:', err);
+        showError('Failed to reset database: ' + err.message);
+    }
+}
+
+function confirmResetDatabase() {
+    openResetModal();
 }
 
 // ===== Initialization =====

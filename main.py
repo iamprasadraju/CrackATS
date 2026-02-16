@@ -401,7 +401,7 @@ async def get_application_stats():
         "total": total,
         "by_status": stats,
         "response_rate": round(
-            (stats.get("phone_screen", 0) + stats.get("interview", 0) + stats.get("offer", 0)) / total * 100, 1
+            (stats.get("shortlisted", 0) + stats.get("interview", 0) + stats.get("offer", 0)) / total * 100, 1
         )
         if total > 0
         else 0,
@@ -411,9 +411,13 @@ async def get_application_stats():
 @app.post("/api/applications/{app_id}/status")
 async def update_application_status(app_id: int, status: str = Form(...)):
     """Quick endpoint to update just the status."""
+    print(f"DEBUG: Received status update request: app_id={app_id}, status='{status}'")
+    print(f"DEBUG: Valid statuses: {Application.STATUSES}")
+
     if status not in Application.STATUSES:
+        print(f"DEBUG: Status '{status}' not in valid statuses!")
         raise HTTPException(
-            status_code=400, detail=f"Invalid status. Must be one of: {', '.join(Application.STATUSES)}"
+            status_code=400, detail=f"Invalid status '{status}'. Must be one of: {', '.join(Application.STATUSES)}"
         )
 
     existing = ApplicationDB.get_by_id(app_id)
@@ -422,6 +426,32 @@ async def update_application_status(app_id: int, status: str = Form(...)):
 
     ApplicationDB.update(app_id, status=status)
     return {"message": f"Status updated to {status}"}
+
+
+@app.post("/api/applications/reset")
+async def reset_database(confirm: bool = Form(...)):
+    """Reset the database - delete all applications.
+
+    Requires confirmation flag to prevent accidental deletion.
+    """
+    if not confirm:
+        raise HTTPException(status_code=400, detail="Must set confirm=true to reset database")
+
+    try:
+        deleted_count = ApplicationDB.reset_all()
+        return {"message": "Database reset successfully", "deleted_count": deleted_count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reset database: {str(e)}")
+
+
+@app.get("/api/debug/statuses")
+async def debug_statuses():
+    """Debug endpoint to check loaded statuses."""
+    return {
+        "statuses": Application.STATUSES,
+        "has_shortlisted": "shortlisted" in Application.STATUSES,
+        "has_phone_screen": "phone_screen" in Application.STATUSES,
+    }
 
 
 if __name__ == "__main__":

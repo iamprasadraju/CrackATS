@@ -132,7 +132,15 @@
                         <h1>Job Application Tracker</h1>
                         <p>Track your job applications through the hiring process</p>
                     </div>
-                    <button class="btn-primary" onclick="openApplicationModal()">+ New Application</button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn-small" onclick="refreshApplications()" title="Refresh applications from database">
+                            Refresh
+                        </button>
+                        <button class="btn-small btn-danger" onclick="confirmResetDatabase()" title="Delete all applications permanently">
+                            Reset All
+                        </button>
+                        <button class="btn-primary" onclick="openApplicationModal()">+ New Application</button>
+                    </div>
                 </div>
                 
                 <div class="stats-bar">
@@ -195,7 +203,7 @@
                             <select id="appStatus">
                                 <option value="saved">Saved</option>
                                 <option value="applied">Applied</option>
-                                <option value="phone_screen">Phone Screen</option>
+                                <option value="shortlisted">Shortlisted</option>
                                 <option value="interview">Interview</option>
                                 <option value="technical">Technical</option>
                                 <option value="offer">Offer</option>
@@ -249,6 +257,38 @@
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeDocModal()">Close</button>
                 <button class="btn-secondary" id="editDocBtn" onclick="toggleEditMode()">Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Database Confirmation Modal -->
+    <div class="modal-overlay" id="resetModal" onclick="closeModalOnBackdrop(event, 'resetModal')">
+        <div class="modal">
+            <div class="modal-header" style="border-bottom-color: var(--error);">
+                <span class="modal-title" style="color: var(--error);">WARNING: Reset Database</span>
+                <button class="modal-close" onclick="closeResetModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-error" style="display: block; margin-bottom: 1rem;">
+                    <strong>This action cannot be undone!</strong><br>
+                    All job applications will be permanently deleted from the database.
+                </div>
+                <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                    To confirm, please type <strong style="color: var(--text);">DELETE</strong> in the field below:
+                </p>
+                <div class="form-group">
+                    <input type="text" id="resetConfirmInput" placeholder="Type DELETE to confirm" 
+                           style="border-color: var(--error);" onkeypress="if(event.key==='Enter') executeReset()">
+                </div>
+                <div id="resetError" style="color: var(--error); font-size: 0.875rem; display: none; margin-top: 0.5rem;">
+                    Please type DELETE exactly to confirm.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeResetModal()">Cancel</button>
+                <button class="btn-danger" onclick="executeReset()" style="background: var(--error); color: white; border: none; padding: 0.625rem 1rem; border-radius: var(--radius); font-weight: 500; cursor: pointer;">
+                    Reset Database
+                </button>
             </div>
         </div>
     </div>

@@ -51,7 +51,7 @@ class Application:
     STATUSES = [
         "saved",
         "applied",
-        "phone_screen",
+        "shortlisted",
         "interview",
         "technical",
         "offer",
@@ -345,6 +345,34 @@ class ApplicationDB:
             return stats
         except Exception as e:
             raise DatabaseError("Failed to get statistics", details=str(e)) from e
+
+    @classmethod
+    def reset_all(cls) -> int:
+        """Delete all applications from the database.
+
+        Returns:
+            Number of applications deleted
+
+        Raises:
+            DatabaseError: If reset fails
+        """
+        try:
+            conn = cls._get_connection()
+            cursor = conn.cursor()
+
+            # Get count before deletion
+            cursor.execute("SELECT COUNT(*) FROM applications")
+            count = cursor.fetchone()[0]
+
+            # Delete all applications
+            cursor.execute("DELETE FROM applications")
+            conn.commit()
+            conn.close()
+
+            logger.warning(f"Database reset: deleted {count} applications")
+            return count
+        except Exception as e:
+            raise DatabaseError("Failed to reset database", details=str(e)) from e
 
 
 # Initialize database on import
