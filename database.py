@@ -8,16 +8,22 @@ from pathlib import Path
 from typing import Any
 
 from exceptions import DatabaseError, ValidationError
+from paths import ensure_database_location, backup_database, get_db_path
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = Path(__file__).parent / "applications.db"
+
+def get_db_path_dynamic() -> Path:
+    """Get database path with migration support."""
+    return ensure_database_location()
 
 
 def init_db() -> None:
     """Initialize SQLite database with applications table."""
+    db_path = get_db_path_dynamic()
+
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -99,7 +105,7 @@ class ApplicationDB:
     @staticmethod
     def _get_connection() -> sqlite3.Connection:
         """Get database connection."""
-        return sqlite3.connect(DB_PATH)
+        return sqlite3.connect(get_db_path_dynamic())
 
     @classmethod
     def create(cls, app: Application) -> int:

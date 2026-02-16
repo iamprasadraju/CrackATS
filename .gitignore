@@ -39,3 +39,12 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Database files (user data - never commit)
+*.db
+*.db.backup
+applications.db
+
+# User data directory (platform-specific)
+user_data/
+data/

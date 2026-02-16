@@ -115,6 +115,23 @@ You should see: `[DONE] API key is working correctly!`
 
 ---
 
+## Data Storage
+
+Your job application data is stored separately from the application code:
+
+**Database Location:**
+- **Windows**: `%APPDATA%/CrackATS/applications.db`
+- **macOS**: `~/Library/Application Support/CrackATS/applications.db`
+- **Linux**: `~/.local/share/CrackATS/applications.db`
+
+**Automatic Migration**: If you have an existing database from a previous version in the project folder, it will be automatically migrated to the new location on first run.
+
+**Backups**: The application automatically creates backups before any database changes. Backups are stored in the `backups/` subdirectory of your user data folder.
+
+**To check your database location:** Visit `http://localhost:8000/api/database/info` while the server is running.
+
+---
+
 ## Setup
 
 ### Configure Your Master Resume

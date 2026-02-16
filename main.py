@@ -1,6 +1,7 @@
 """FastAPI web interface for job scraper."""
 
 import asyncio
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional
@@ -454,7 +455,53 @@ async def debug_statuses():
     }
 
 
+@app.on_event("startup")
+async def startup_event():
+    """Run database migration on startup."""
+    from paths import migrate_legacy_database, get_db_path
+
+    migrated = migrate_legacy_database()
+    if migrated:
+        print(f"✓ Database migrated to: {get_db_path()}")
+
+
+@app.get("/api/database/info")
+async def database_info():
+    """Get database location and status."""
+    from paths import get_db_path, get_user_data_dir
+
+    db_path = get_db_path()
+    legacy_path = Path(__file__).parent / "applications.db"
+
+    return {
+        "database_path": str(db_path),
+        "database_exists": db_path.exists(),
+        "user_data_dir": str(get_user_data_dir()),
+        "legacy_database_exists": legacy_path.exists(),
+        "platform": "windows" if sys.platform == "win32" else "macos" if sys.platform == "darwin" else "linux",
+    }
+
+
+@app.post("/api/database/backup")
+async def backup_database_endpoint():
+    """Create a backup of the database."""
+    from paths import backup_database
+
+    backup_path = backup_database()
+    if backup_path:
+        return {"message": "Backup created successfully", "backup_path": str(backup_path)}
+    else:
+        raise HTTPException(status_code=404, detail="No database to backup")
+
+
 if __name__ == "__main__":
     import uvicorn
+
+    # Run migration before starting server
+    from paths import migrate_legacy_database, get_db_path
+
+    migrated = migrate_legacy_database()
+    if migrated:
+        print(f"✓ Database migrated to: {get_db_path()}")
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
