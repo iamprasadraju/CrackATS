@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Form, HTTPException, Query
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 import processor
@@ -103,8 +103,8 @@ async def scrape_and_generate(url: str = Form(...)):
             gen_result = _generate_ai_content(job, result["folder_path"])
 
             # Auto-create application entry
-            from datetime import datetime
             import json
+            from datetime import datetime
 
             app = Application(
                 company=job.get("company", ""),
@@ -458,7 +458,7 @@ async def debug_statuses():
 @app.on_event("startup")
 async def startup_event():
     """Run database migration on startup."""
-    from paths import migrate_legacy_database, get_db_path
+    from paths import get_db_path, migrate_legacy_database
 
     migrated = migrate_legacy_database()
     if migrated:
@@ -498,10 +498,10 @@ if __name__ == "__main__":
     import uvicorn
 
     # Run migration before starting server
-    from paths import migrate_legacy_database, get_db_path
+    from paths import get_db_path, migrate_legacy_database
 
     migrated = migrate_legacy_database()
     if migrated:
         print(f"✓ Database migrated to: {get_db_path()}")
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, port=8000)
