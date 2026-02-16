@@ -486,11 +486,48 @@
             margin-bottom: 0.5rem;
             cursor: pointer;
             transition: all 0.2s;
+            user-select: none;
         }
         
         .kanban-card:hover {
             border-color: var(--border);
             box-shadow: var(--shadow-md);
+        }
+        
+        .kanban-card.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+            cursor: grabbing;
+        }
+        
+        .kanban-card.drag-over {
+            border: 2px dashed var(--primary);
+            background: var(--surface-hover);
+        }
+        
+        .kanban-column.drag-over {
+            background: rgba(24, 24, 27, 0.03);
+            box-shadow: inset 0 0 0 2px var(--primary-light);
+        }
+        
+        .kanban-cards {
+            min-height: 100px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .kanban-cards.drag-over {
+            background: rgba(24, 24, 27, 0.03);
+            border-radius: var(--radius);
+        }
+        
+        .drag-placeholder {
+            background: var(--surface-hover);
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 0.875rem;
+            margin-bottom: 0.5rem;
+            height: 60px;
+            opacity: 0.6;
         }
         
         .kanban-card-company {
@@ -1480,6 +1517,10 @@
             { id: 'withdrawn', label: 'Withdrawn', color: '#71717a' }
         ];
 
+        // Drag and Drop State
+        let draggedAppId = null;
+        let draggedCard = null;
+
         async function loadApplications() {
             try {
                 const response = await fetch('/api/applications');
@@ -1493,14 +1534,24 @@
 
                 const board = document.getElementById('kanbanBoard');
                 board.innerHTML = STATUS_COLUMNS.map(col => `
-                    <div class="kanban-column">
+                    <div class="kanban-column" data-status="${col.id}">
                         <div class="kanban-column-header">
                             <span class="kanban-column-title">${col.label}</span>
-                            <span class="kanban-count">${byStatus[col.id].length}</span>
+                            <span class="kanban-count" id="count-${col.id}">${byStatus[col.id].length}</span>
                         </div>
-                        <div class="kanban-cards">
+                        <div class="kanban-cards" data-status="${col.id}"
+                            ondragover="handleDragOver(event)"
+                            ondrop="handleDrop(event, '${col.id}')"
+                            ondragenter="handleDragEnter(event)"
+                            ondragleave="handleDragLeave(event)">
                             ${byStatus[col.id].map(app => `
-                                <div class="kanban-card" onclick="editApplication(${app.id})">
+                                <div class="kanban-card status-${app.status}" 
+                                     draggable="true"
+                                     data-app-id="${app.id}"
+                                     data-current-status="${app.status}"
+                                     onclick="editApplication(${app.id})"
+                                     ondragstart="handleDragStart(event, ${app.id})"
+                                     ondragend="handleDragEnd(event)">
                                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                         <div class="kanban-card-company">${app.company}</div>
                                         ${app.resume_path ? `<button class="view-docs-btn" onclick="event.stopPropagation(); viewDocuments(${app.id}, '${app.company}', '${app.title}')">View Docs</button>` : ''}
@@ -1521,6 +1572,141 @@
             } catch (err) {
                 console.error('Failed to load applications:', err);
             }
+        }
+
+        // Drag and Drop Handlers
+        function handleDragStart(event, appId) {
+            draggedAppId = appId;
+            draggedCard = event.target;
+            event.target.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', appId);
+            
+            // Set drag image (optional - browser default is usually fine)
+            const rect = event.target.getBoundingClientRect();
+            event.dataTransfer.setDragImage(event.target, rect.width / 2, 20);
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove('dragging');
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                col.classList.remove('drag-over');
+            });
+            document.querySelectorAll('.kanban-cards').forEach(cards => {
+                cards.classList.remove('drag-over');
+            });
+            draggedAppId = null;
+            draggedCard = null;
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragEnter(event) {
+            event.preventDefault();
+            const cardsContainer = event.currentTarget;
+            cardsContainer.classList.add('drag-over');
+        }
+
+        function handleDragLeave(event) {
+            const cardsContainer = event.currentTarget;
+            // Only remove if we're actually leaving the container
+            if (!cardsContainer.contains(event.relatedTarget)) {
+                cardsContainer.classList.remove('drag-over');
+            }
+        }
+
+        async function handleDrop(event, newStatus) {
+            event.preventDefault();
+            const cardsContainer = event.currentTarget;
+            cardsContainer.classList.remove('drag-over');
+            
+            const appId = event.dataTransfer.getData('text/plain');
+            if (!appId) return;
+            
+            const card = document.querySelector(`[data-app-id="${appId}"]`);
+            if (!card) return;
+            
+            const currentStatus = card.dataset.currentStatus;
+            
+            // Don't do anything if dropped in same column
+            if (currentStatus === newStatus) return;
+            
+            // Update UI immediately for seamless feel
+            updateCardInUI(card, newStatus);
+            updateColumnCounts();
+            
+            // Update backend
+            try {
+                const formData = new FormData();
+                formData.append('status', newStatus);
+                
+                const response = await fetch(`/api/applications/${appId}/status`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to update status');
+                }
+                
+                // Show subtle success feedback
+                showDragSuccess(card);
+                
+                // Update stats
+                loadStats();
+                
+            } catch (err) {
+                console.error('Failed to update status:', err);
+                // Revert UI on error
+                updateCardInUI(card, currentStatus);
+                updateColumnCounts();
+                showError('Failed to move application. Please try again.');
+            }
+        }
+
+        function updateCardInUI(card, newStatus) {
+            // Remove old status class
+            const oldStatus = card.dataset.currentStatus;
+            card.classList.remove(`status-${oldStatus}`);
+            
+            // Add new status class
+            card.classList.add(`status-${newStatus}`);
+            card.dataset.currentStatus = newStatus;
+            
+            // Move card to new column
+            const targetColumn = document.querySelector(`.kanban-cards[data-status="${newStatus}"]`);
+            if (targetColumn) {
+                // Insert before the "Add" button
+                const addButton = targetColumn.querySelector('.add-card-btn');
+                targetColumn.insertBefore(card, addButton);
+            }
+        }
+
+        function updateColumnCounts() {
+            STATUS_COLUMNS.forEach(col => {
+                const column = document.querySelector(`.kanban-cards[data-status="${col.id}"]`);
+                if (column) {
+                    const cards = column.querySelectorAll('.kanban-card');
+                    const countEl = document.getElementById(`count-${col.id}`);
+                    if (countEl) {
+                        countEl.textContent = cards.length;
+                    }
+                }
+            });
+        }
+
+        function showDragSuccess(card) {
+            card.style.transition = 'all 0.3s ease';
+            card.style.borderColor = 'var(--success)';
+            card.style.boxShadow = '0 0 0 3px rgba(22, 163, 74, 0.2)';
+            
+            setTimeout(() => {
+                card.style.borderColor = '';
+                card.style.boxShadow = '';
+            }, 800);
         }
 
         async function loadStats() {
