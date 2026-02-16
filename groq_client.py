@@ -1,70 +1,82 @@
 """Groq API client for resume and cover letter generation."""
 
 import json
+import logging
 import os
 import re
 import ssl
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 
+from exceptions import APIAccessDeniedError, APIKeyError, APIRateLimitError
+
+logger = logging.getLogger(__name__)
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 
-def _load_env_file():
+def _load_env_file() -> None:
     """Load environment variables from .env file if present."""
-    # Check current working directory first, then script directory
     possible_paths = [Path.cwd() / ".env", Path(__file__).parent / ".env"]
 
     for env_file in possible_paths:
         if env_file.exists():
+            logger.debug(f"Loading environment from {env_file}")
             content = env_file.read_text(encoding="utf-8")
             for line in content.split("\n"):
                 line = line.strip()
                 if line and not line.startswith("#"):
-                    # Match KEY=value format
                     match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$", line)
                     if match:
                         key, value = match.groups()
-                        # Remove quotes if present
                         value = value.strip().strip('"').strip("'")
-                        # Only set if not already in environment
                         if key not in os.environ:
                             os.environ[key] = value
-            return  # Stop after first .env found
+            return
 
 
-def get_api_key():
-    """Get Groq API key from environment variable or .env file."""
-    # First try to load from .env file
+def get_api_key() -> str:
+    """Get Groq API key from environment variable or .env file.
+
+    Returns:
+        The Groq API key
+
+    Raises:
+        APIKeyError: If the API key is not found
+    """
     _load_env_file()
 
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        raise ValueError(
-            "GROQ_API_KEY not found.\n\n"
-            "Please set it using one of these methods:\n"
+        raise APIKeyError(
+            "GROQ_API_KEY not found.",
+            details="Please set it using one of these methods:\n"
             "1. Create a .env file with: GROQ_API_KEY=your-key-here\n"
-            "2. Or set environment variable: export GROQ_API_KEY='your-key'"
+            "2. Or set environment variable: export GROQ_API_KEY='your-key'",
         )
     return api_key
 
 
-def _create_ssl_context():
+def _create_ssl_context() -> ssl.SSLContext:
     """Create SSL context, handling macOS certificate issues."""
     try:
-        # Try to use certifi if available (handles macOS certificates properly)
         import certifi
 
         return ssl.create_default_context(cafile=certifi.where())
     except ImportError:
-        # Fall back to default context
+        logger.warning("certifi not installed, using default SSL context")
         return ssl.create_default_context()
 
 
-def call_groq_api(messages, model=DEFAULT_MODEL, temperature=0.7, max_tokens=4000):
+def call_groq_api(
+    messages: list[dict[str, str]],
+    model: str = DEFAULT_MODEL,
+    temperature: float = 0.7,
+    max_tokens: int = 4000,
+) -> str:
     """Call Groq API with given messages.
 
     Args:
@@ -75,10 +87,21 @@ def call_groq_api(messages, model=DEFAULT_MODEL, temperature=0.7, max_tokens=400
 
     Returns:
         Generated text content
+
+    Raises:
+        APIKeyError: If the API key is invalid
+        APIAccessDeniedError: If access is denied
+        APIRateLimitError: If rate limit is exceeded
+        RuntimeError: For other API errors
     """
     api_key = get_api_key()
 
-    data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    data = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
 
     req = urllib.request.Request(
         GROQ_API_URL,
@@ -86,7 +109,7 @@ def call_groq_api(messages, model=DEFAULT_MODEL, temperature=0.7, max_tokens=400
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "User-Agent": "TurboApply/1.0",
+            "User-Agent": "CrackATS/1.0",
         },
         method="POST",
     )
@@ -95,40 +118,33 @@ def call_groq_api(messages, model=DEFAULT_MODEL, temperature=0.7, max_tokens=400
 
     try:
         with urllib.request.urlopen(req, timeout=120, context=ssl_context) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
-            return result["choices"][0]["message"]["content"]
+            result: dict[str, Any] = json.loads(resp.read().decode("utf-8"))
+            return str(result["choices"][0]["message"]["content"])
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8")
+        logger.error(f"Groq API HTTP error {e.code}: {error_body}")
 
-        # Provide helpful error messages for common issues
         if e.code == 401:
-            raise RuntimeError(
-                f"Groq API Error 401: Invalid API key\n\n"
-                f"Your API key is invalid or expired.\n"
-                f"1. Check your key at: https://console.groq.com/keys\n"
-                f"2. Generate a new key if needed\n"
-                f"3. Update: export GROQ_API_KEY='your-new-key'\n\n"
-                f"Response: {error_body}"
+            raise APIKeyError(
+                "Invalid API key",
+                details="Your API key is invalid or expired.\n"
+                "1. Check your key at: https://console.groq.com/keys\n"
+                "2. Generate a new key if needed\n"
+                "3. Update: export GROQ_API_KEY='your-new-key'",
             ) from e
         elif e.code == 403:
-            raise RuntimeError(
-                f"Groq API Error 403: Access Denied\n\n"
-                f"Possible causes:\n"
-                f"1. API key revoked or expired\n"
-                f"2. Account not verified (check email)\n"
-                f"3. Rate limit exceeded\n"
-                f"4. IP address blocked\n\n"
-                f"Solutions:\n"
-                f"• Check account status: https://console.groq.com\n"
-                f"• Generate new API key\n"
-                f"• Check if you received verification email\n\n"
-                f"Response: {error_body}"
+            raise APIAccessDeniedError(
+                "Access Denied",
+                details="Possible causes:\n"
+                "1. API key revoked or expired\n"
+                "2. Account not verified (check email)\n"
+                "3. Rate limit exceeded\n"
+                "4. IP address blocked",
             ) from e
         elif e.code == 429:
-            raise RuntimeError(
-                f"Groq API Error 429: Rate Limit Exceeded\n\n"
-                f"You've made too many requests. Please wait a minute and try again.\n\n"
-                f"Response: {error_body}"
+            raise APIRateLimitError(
+                "Rate Limit Exceeded",
+                details="You've made too many requests. Please wait a minute and try again.",
             ) from e
         else:
             raise RuntimeError(f"Groq API error: {e.code} - {error_body}") from e
@@ -136,15 +152,17 @@ def call_groq_api(messages, model=DEFAULT_MODEL, temperature=0.7, max_tokens=400
         raise RuntimeError(
             f"SSL Certificate error: {e}\n\n"
             "On macOS, run: /Applications/Python 3.x/Install Certificates.command\n"
-            "Or install certifi: pip install certifi\n\n"
-            "Alternatively, set environment variable to bypass SSL (not recommended):\n"
-            "export PYTHONHTTPSVERIFY=0"
+            "Or install certifi: pip install certifi"
         ) from e
     except Exception as e:
         raise RuntimeError(f"Failed to call Groq API: {e}") from e
 
 
-def generate_tailored_resume(job_description, master_resume, model=DEFAULT_MODEL):
+def generate_tailored_resume(
+    job_description: str,
+    master_resume: str,
+    model: str = DEFAULT_MODEL,
+) -> str:
     """Generate tailored resume based on job description.
 
     Args:
@@ -185,10 +203,17 @@ Return ONLY the complete LaTeX resume code, ready to compile."""
         {"role": "user", "content": prompt},
     ]
 
+    logger.info(f"Generating tailored resume using model: {model}")
     return call_groq_api(messages, model=model, temperature=0.7, max_tokens=4000)
 
 
-def generate_cover_letter(job_description, tailored_resume, company_name, job_title, model=DEFAULT_MODEL):
+def generate_cover_letter(
+    job_description: str,
+    tailored_resume: str,
+    company_name: str,
+    job_title: str,
+    model: str = DEFAULT_MODEL,
+) -> str:
     """Generate cover letter based on job description and tailored resume.
 
     Args:
@@ -256,10 +281,11 @@ Return ONLY the cover letter text, no explanations or formatting."""
         {"role": "user", "content": prompt},
     ]
 
+    logger.info(f"Generating cover letter using model: {model}")
     return call_groq_api(messages, model=model, temperature=0.8, max_tokens=2000)
 
 
-def extract_resume_sections(latex_content):
+def extract_resume_sections(latex_content: str) -> dict[str, str]:
     """Extract key sections from LaTeX resume for cover letter context.
 
     Args:
@@ -268,12 +294,11 @@ def extract_resume_sections(latex_content):
     Returns:
         Dict with extracted sections
     """
-    sections = {"skills": "", "experience": "", "education": ""}
+    sections: dict[str, str] = {"skills": "", "experience": "", "education": ""}
 
-    # Simple extraction - can be improved with proper LaTeX parsing
     lines = latex_content.split("\n")
-    current_section = None
-    section_buffer = []
+    current_section: str | None = None
+    section_buffer: list[str] = []
 
     for line in lines:
         line = line.strip()
@@ -300,7 +325,7 @@ def extract_resume_sections(latex_content):
     return sections
 
 
-def test_api_key():
+def test_api_key() -> bool:
     """Test if the API key is valid by making a simple request."""
     try:
         messages = [
@@ -308,8 +333,8 @@ def test_api_key():
             {"role": "user", "content": "Say 'API key is working!' if you receive this message."},
         ]
         result = call_groq_api(messages, model="llama-3.1-8b-instant", max_tokens=50)
-        print(f"[DONE] API Key Test: {result}")
+        logger.info(f"API Key Test: {result}")
         return True
     except Exception as e:
-        print(f"[ERROR] API Key Test Failed: {e}")
+        logger.error(f"API Key Test Failed: {e}")
         return False
