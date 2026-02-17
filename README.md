@@ -361,6 +361,3 @@ If this project helped you land your dream job, consider supporting its developm
 
 **Ethereum (ETH):** `0xdeFE5597a76EFECDc29Fa01798c5470224dB394F`
 
----
-
-Made with ❤️ using FastAPI, Groq AI, and modern web technologies.
