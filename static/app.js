@@ -795,6 +795,109 @@ async function executeReset() {
     }
 }
 
+// ===== API Key Management =====
+function showApiKeyModal() {
+    document.getElementById('apiKeyModal').classList.add('active');
+    document.getElementById('apiKeyInput').value = '';
+    document.getElementById('apiKeyError').style.display = 'none';
+    document.getElementById('apiKeyInput').focus();
+    
+    // Load current key if exists
+    loadCurrentApiKey();
+}
+
+function closeApiKeyModal() {
+    document.getElementById('apiKeyModal').classList.remove('active');
+    document.getElementById('apiKeyInput').value = '';
+    document.getElementById('apiKeyError').style.display = 'none';
+    document.getElementById('showApiKey').checked = false;
+    document.getElementById('apiKeyInput').type = 'password';
+}
+
+async function loadCurrentApiKey() {
+    try {
+        const response = await fetch('/api/config');
+        const data = await response.json();
+        
+        if (data.groq_api_key) {
+            // Show masked version
+            document.getElementById('apiKeyInput').placeholder = '••••••••••••••••••••••••••';
+        }
+    } catch (err) {
+        console.error('Failed to load current API key:', err);
+    }
+}
+
+function toggleApiKeyVisibility() {
+    const input = document.getElementById('apiKeyInput');
+    const checkbox = document.getElementById('showApiKey');
+    input.type = checkbox.checked ? 'text' : 'password';
+}
+
+async function saveApiKey() {
+    const apiKey = document.getElementById('apiKeyInput').value.trim();
+    const errorDiv = document.getElementById('apiKeyError');
+    
+    // Validation
+    if (!apiKey) {
+        errorDiv.textContent = 'Please enter an API key';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    if (!apiKey.startsWith('gsk_')) {
+        errorDiv.textContent = 'Invalid API key format. Groq keys start with "gsk_"';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('api_key', apiKey);
+        
+        const response = await fetch('/api/config', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to save API key');
+        }
+        
+        const result = await response.json();
+        closeApiKeyModal();
+        showSuccess('API key saved successfully!');
+        
+        // Test the key
+        if (result.tested) {
+            console.log('API key tested:', result.test_result);
+        }
+    } catch (err) {
+        console.error('Failed to save API key:', err);
+        errorDiv.textContent = err.message;
+        errorDiv.style.display = 'block';
+    }
+}
+
+async function exportApiKey() {
+    try {
+        const response = await fetch('/api/config');
+        const data = await response.json();
+        
+        if (data.groq_api_key) {
+            // Copy to clipboard
+            await navigator.clipboard.writeText(data.groq_api_key);
+            showSuccess('API key copied to clipboard!');
+        } else {
+            showError('No API key configured');
+        }
+    } catch (err) {
+        console.error('Failed to export API key:', err);
+        showError('Failed to export API key');
+    }
+}
+
 function confirmResetDatabase() {
     openResetModal();
 }

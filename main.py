@@ -455,6 +455,66 @@ async def debug_statuses():
     }
 
 
+@app.get("/api/config")
+async def get_config():
+    """Get application configuration (safe values only)."""
+    import os
+
+    return {
+        "groq_api_key": os.environ.get("GROQ_API_KEY", ""),
+        "groq_model": os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
+    }
+
+
+@app.post("/api/config")
+async def update_config(api_key: str = Form(...)):
+    """Update API key in configuration."""
+    import os
+    import re
+
+    # Validate API key format
+    if not api_key.startswith("gsk_"):
+        raise HTTPException(status_code=400, detail="Invalid API key format. Groq keys must start with 'gsk_'")
+
+    try:
+        # Update environment variable
+        os.environ["GROQ_API_KEY"] = api_key
+
+        # Update or create .env file
+        env_file = Path(__file__).parent / ".env"
+
+        if env_file.exists():
+            # Read existing content
+            content = env_file.read_text(encoding="utf-8")
+
+            # Check if GROQ_API_KEY already exists
+            if re.search(r"^GROQ_API_KEY\s*=\s*", content, re.MULTILINE):
+                # Replace existing key
+                content = re.sub(r"^GROQ_API_KEY\s*=\s*.*$", f"GROQ_API_KEY={api_key}", content, flags=re.MULTILINE)
+            else:
+                # Add new key
+                content += f"\nGROQ_API_KEY={api_key}\n"
+        else:
+            # Create new .env file
+            content = f"GROQ_API_KEY={api_key}\n"
+
+        # Write to file
+        env_file.write_text(content, encoding="utf-8")
+
+        # Test the key
+        test_result = False
+        try:
+            import groq_client
+
+            test_result = groq_client.test_api_key()
+        except Exception as e:
+            print(f"API key test failed: {e}")
+
+        return {"message": "API key saved successfully", "tested": True, "test_result": test_result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save API key: {str(e)}")
+
+
 @app.on_event("startup")
 async def startup_event():
     """Run database migration on startup."""

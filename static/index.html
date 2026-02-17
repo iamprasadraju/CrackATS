@@ -20,6 +20,9 @@
                 <button class="nav-tab active" onclick="switchTab('generator')">Generator</button>
                 <button class="nav-tab" onclick="switchTab('tracker')">Job Tracker</button>
             </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="btn-small" onclick="showApiKeyModal()" title="Set API Key">Set API Key</button>
+            </div>
         </div>
     </nav>
 
@@ -289,6 +292,35 @@
                 <button class="btn-danger" onclick="executeReset()" style="background: var(--error); color: white; border: none; padding: 0.625rem 1rem; border-radius: var(--radius); font-weight: 500; cursor: pointer;">
                     Reset Database
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div class="modal-overlay" id="apiKeyModal" onclick="closeModalOnBackdrop(event, 'apiKeyModal')">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Set Groq API Key</span>
+                <button class="modal-close" onclick="closeApiKeyModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Groq API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="gsk_...">
+                    <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                        Get your free API key at <a href="https://console.groq.com/keys" target="_blank" style="color: var(--primary);">console.groq.com</a>
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="showApiKey" onchange="toggleApiKeyVisibility()"> Show key
+                    </label>
+                </div>
+                <div id="apiKeyError" style="color: var(--error); font-size: 0.875rem; display: none; margin-top: 0.5rem;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeApiKeyModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveApiKey()">Save API Key</button>
             </div>
         </div>
     </div>
