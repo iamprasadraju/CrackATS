@@ -1,12 +1,14 @@
 # CrackATS - AI Resume Generator & Job Tracker
 
-Generate tailored resumes and cover letters for each job application using AI. Track your applications with a visual kanban board.
+Generate tailored resumes and cover letters for each job application using AI. Track your applications with a visual kanban board and instantly open them in Overleaf for editing.
 
 ## Features
 
 - **AI-Powered Resume Tailoring** - Automatically customizes your resume for each job description
 - **Cover Letter Generation** - Creates personalized cover letters that match the job
+- **Overleaf Integration** - One-click export to Overleaf with automatic project naming
 - **Job Application Tracker** - Visual kanban board to track applications through the hiring process
+- **Document Viewer** - View and edit resumes/cover letters directly in the browser
 - **Cross-Platform** - Works on Windows, macOS, and Linux
 - **Safe Data Storage** - Database stored in user directory, survives app updates
 - **Privacy First** - All data stored locally, only job descriptions sent to AI
@@ -37,13 +39,20 @@ source venv/bin/activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Set up your API key
+# 4. Start the web interface
+python main.py
+```
+
+Visit `http://localhost:8000` and click **"Set API Key"** in the navbar to configure your Groq API key through the UI.
+
+**Alternative (CLI):** Set via environment variable:
+```bash
 echo "GROQ_API_KEY=your-api-key-here" > .env
 ```
 
 ## Configuration
 
-### 1. Customize Your Master Resume
+### 1. Customize Your Master Resume (Optional)
 
 Edit `templates/resume-template.tex` with your information:
 
@@ -69,36 +78,48 @@ Company Name, Location
 - Keep descriptions detailed but concise
 - Add both technical and soft skills
 
-### 2. Test Your Setup
+### 2. Using the Web Interface
 
-```bash
-python job_tool.py test
-```
+After running `python main.py`, visit `http://localhost:8000`
 
-You should see: "API key is working correctly!"
+#### Set API Key (First Time Setup)
+1. Click **"Set API Key"** button in the navbar
+2. Get your free API key from [console.groq.com/keys](https://console.groq.com/keys)
+3. Paste your key (format: `gsk_...`)
+4. Click **Save API Key**
+5. The key is tested and saved to `.env` automatically
 
 ## Usage
 
-### Web Interface (Recommended)
-
-Start the server:
-
-```bash
-python main.py
-```
-
-Visit `http://localhost:8000`
+### Web Interface
 
 #### Generator Tab
 1. Paste a job posting URL (LinkedIn, Indeed, etc.)
 2. Click "Generate Resume"
 3. AI analyzes the job and creates tailored resume + cover letter
-4. Copy to Overleaf or download as .tex file
+4. Click **"Overleaf"** button to instantly open in Overleaf
+   - Project automatically named: `Role_Company.tex`
+   - Duplicate prevention: Re-opens go to your projects dashboard
+5. Or use Copy/Download to save locally
+
+#### Overleaf Integration
+
+**First Click:**
+- Creates new Overleaf project
+- Named after the job: `Software_Engineer_Google.tex`
+- Content encoded and opened in new tab
+
+**Subsequent Clicks:**
+- Automatically redirects to your Overleaf projects dashboard
+- Prevents duplicate project creation
+- Session-based tracking (resets on browser close)
 
 #### Tracker Tab
-- **Kanban Board**: Drag cards between columns (Saved → Applied → Shortlisted → Interview → Offer)
-- **Add Applications**: Click "+ New Application" or drag existing cards
-- **View Documents**: Click "View Docs" on any card to see resume/cover letter
+- **Kanban Board**: Drag cards between columns (Saved → Applied → Shortlisted → Interview → Technical → Offer)
+- **Add Applications**: Click "+ New Application" or use "+ Add" in each column
+- **View Documents**: Click "View Docs" to see resume/cover letter
+  - Edit documents directly in the modal
+  - Open in Overleaf with one click
 - **Statistics**: Track total applications, response rate, and offers
 
 ### Command Line Interface
@@ -190,11 +211,6 @@ curl http://localhost:8000/api/database/info
 - **Permissions:** No admin rights needed (writes to user directory)
 - **Backup:** Easy to backup/sync your `CrackATS/` folder
 
-- Automatic backups created before database changes
-- Stored in `backups/` subdirectory
-- Last 10 backups retained
-- Manual backup: `POST /api/database/backup` (web interface)
-
 ## Project Structure
 
 ```
@@ -207,9 +223,9 @@ crack-ats/
 ├── groq_client.py         # AI API client
 ├── scraper.py             # Job scraping
 ├── static/                # Web UI files
-│   ├── index.html
-│   ├── style.css
-│   └── app.js
+│   ├── index.html         # Main HTML with credits footer
+│   ├── style.css          # Styles with Overleaf button, footer
+│   └── app.js             # JavaScript with Overleaf integration
 ├── templates/             # LaTeX templates
 │   ├── resume-template.tex
 │   ├── prompt-template.txt
@@ -221,6 +237,12 @@ crack-ats/
 
 ### API Key Issues
 
+**Using Web UI (Recommended):**
+1. Click **"Set API Key"** in the navbar
+2. Enter your key (starts with `gsk_`)
+3. Click Save - it's tested automatically
+
+**Using CLI:**
 ```bash
 # Test API key
 python job_tool.py test
@@ -259,16 +281,60 @@ If viewing documents fails on Windows, ensure you're using the web interface whi
 - `PUT /api/applications/{id}` - Update application
 - `DELETE /api/applications/{id}` - Delete application
 - `POST /api/applications/{id}/status` - Update status (for drag-and-drop)
+- `GET /api/applications/stats/overview` - Get application statistics
 
 ### Documents
 - `GET /resume/{folder}` - Get resume content
 - `GET /cover-letter/{folder}` - Get cover letter content
 - `POST /api/save-document` - Save document changes
+- `GET /tex-export/{folder}/{filename}` - Export raw TeX for Overleaf
+
+### Template
+- `GET /template` - Get master resume template
+- `POST /template` - Update master resume template
 
 ### Database
 - `GET /api/database/info` - Database location and status
 - `POST /api/database/backup` - Create manual backup
 - `POST /api/applications/reset` - Reset database (deletes all data)
+- `POST /api/applications/cleanup` - Remove orphaned applications
+
+### Configuration
+- `GET /api/config` - Get current configuration
+- `POST /api/config` - Update API key
+
+### Status Tracking
+
+The application tracks jobs through these stages:
+1. **Saved** - Job saved for later
+2. **Applied** - Application submitted
+3. **Shortlisted** - Application shortlisted
+4. **Interview** - Interview scheduled
+5. **Technical** - Technical round
+6. **Offer** - Offer received
+7. **Rejected** - Application rejected
+8. **Withdrawn** - Application withdrawn
+
+## Overleaf Integration Details
+
+### How It Works
+
+1. **Click "Overleaf" button**
+2. Content is base64 encoded (avoids localhost restrictions)
+3. Opens: `https://www.overleaf.com/docs?snip_uri=data:application/x-tex;base64,...&snip_name=Role_Company.tex`
+4. Overleaf creates new project with your content
+
+### Technical Implementation
+
+- Uses base64 data URI for content transfer
+- Passes `snip_name` parameter for project naming
+- Session storage tracks opened documents
+- Redirects to dashboard on repeat clicks
+
+### Supported Files
+
+- `.tex` files (resumes) - `application/x-tex`
+- `.txt` files (cover letters) - `text/plain`
 
 ## Contributing
 
@@ -286,3 +352,15 @@ MIT License - see LICENSE file for details
 
 - Report issues: [GitHub Issues](https://github.com/yourusername/crack-ats/issues)
 - Get API key: [console.groq.com](https://console.groq.com/keys)
+
+## Credits & Donations
+
+**Created with ❤️ by Prasad Raju**
+
+If this project helped you land your dream job, consider supporting its development:
+
+**Ethereum (ETH):** `0xdeFE5597a76EFECDc29Fa01798c5470224dB394F`
+
+---
+
+Made with ❤️ using FastAPI, Groq AI, and modern web technologies.
