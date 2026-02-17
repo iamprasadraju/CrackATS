@@ -73,6 +73,7 @@
                             <div class="card-actions">
                                 <button class="btn-small" onclick="copyResume()">Copy</button>
                                 <button class="btn-small" onclick="downloadResume()">Download</button>
+                                <button class="btn-small btn-overleaf" onclick="openInOverleaf()" title="Open in Overleaf">Overleaf</button>
                             </div>
                         </div>
                         <div class="card-body">
@@ -260,6 +261,7 @@
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeDocModal()">Close</button>
                 <button class="btn-secondary" id="editDocBtn" onclick="toggleEditMode()">Edit</button>
+                <button class="btn-secondary btn-overleaf" id="openInOverleafBtn" onclick="openCurrentDocInOverleaf()" title="Open in Overleaf">Open in Overleaf</button>
             </div>
         </div>
     </div>

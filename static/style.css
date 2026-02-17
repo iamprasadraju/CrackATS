@@ -355,6 +355,18 @@ input[type="url"]:focus {
     background: var(--error-light);
 }
 
+/* Overleaf Button - Distinctive styling */
+.btn-overleaf {
+    background: #47a141;
+    color: white;
+    border: 1px solid #47a141;
+}
+
+.btn-overleaf:hover {
+    background: #3d8a38;
+    border-color: #3d8a38;
+}
+
 .card-body {
     padding: 1rem;
     max-height: 400px;
@@ -786,6 +798,17 @@ input[type="url"]:focus {
 .btn-secondary:hover {
     background: var(--surface-hover);
     border-color: var(--border);
+}
+
+.btn-secondary.btn-overleaf {
+    background: #47a141;
+    color: white;
+    border: 1px solid #47a141;
+}
+
+.btn-secondary.btn-overleaf:hover {
+    background: #3d8a38;
+    border-color: #3d8a38;
 }
 
 .btn-danger {

@@ -120,6 +120,47 @@ function copyResume() {
     });
 }
 
+function openInOverleaf() {
+    if (!currentFolder || !currentResume) {
+        showError('No resume generated yet');
+        return;
+    }
+    
+    // Get job info from DOM
+    const jobTitle = document.getElementById('jobTitle').textContent || 'Resume';
+    const jobCompany = document.getElementById('jobCompany').textContent || 'Company';
+    
+    // Create project name: RoleWithCompany
+    const projectName = sanitizeProjectName(`${jobTitle}_${jobCompany}`);
+    
+    // Check if already opened in this session
+    const storageKey = `overleaf_opened_${currentFolder}`;
+    if (sessionStorage.getItem(storageKey)) {
+        // Already opened - go to projects dashboard instead of creating duplicate
+        window.open('https://www.overleaf.com/project', '_blank');
+        return;
+    }
+    
+    // Use base64 data URI to avoid localhost access issues
+    const base64Content = btoa(unescape(encodeURIComponent(currentResume)));
+    const dataUri = `data:application/x-tex;base64,${base64Content}`;
+    const overleafUrl = `https://www.overleaf.com/docs?snip_uri=${encodeURIComponent(dataUri)}&snip_name=${encodeURIComponent(projectName)}.tex`;
+    
+    // Mark as opened
+    sessionStorage.setItem(storageKey, 'true');
+    
+    window.open(overleafUrl, '_blank');
+}
+
+function sanitizeProjectName(name) {
+    // Remove special characters and spaces, keep alphanumeric and underscores
+    return name
+        .replace(/[^a-zA-Z0-9_\s]/g, '')  // Remove special chars except spaces and underscores
+        .replace(/\s+/g, '_')              // Replace spaces with underscores
+        .replace(/_+/g, '_')               // Collapse multiple underscores
+        .substring(0, 50);                 // Limit length
+}
+
 function downloadResume() {
     const blob = new Blob([currentResume], { type: 'text/x-tex' });
     const url = URL.createObjectURL(blob);
@@ -640,6 +681,44 @@ function closeDocModal() {
     currentDocApp = null;
     currentDocContent = '';
     originalContent = '';
+}
+
+function openCurrentDocInOverleaf() {
+    if (!currentDocApp) {
+        alert('No document loaded');
+        return;
+    }
+    
+    if (!currentDocContent) {
+        alert('No document content available');
+        return;
+    }
+    
+    // Create project name from title and company
+    const title = currentDocApp.title || 'Job';
+    const company = currentDocApp.company || 'Company';
+    const docType = currentDocType === 'resume' ? 'Resume' : 'CoverLetter';
+    const projectName = sanitizeProjectName(`${title}_${company}_${docType}`);
+    
+    // Check if already opened in this session
+    const docId = currentDocApp.id || 'unknown';
+    const storageKey = `overleaf_opened_doc_${docId}_${currentDocType}`;
+    if (sessionStorage.getItem(storageKey)) {
+        // Already opened - go to projects dashboard instead of creating duplicate
+        window.open('https://www.overleaf.com/project', '_blank');
+        return;
+    }
+    
+    // Use base64 data URI to avoid localhost access issues
+    const mimeType = currentDocType === 'resume' ? 'application/x-tex' : 'text/plain';
+    const base64Content = btoa(unescape(encodeURIComponent(currentDocContent)));
+    const dataUri = `data:${mimeType};base64,${base64Content}`;
+    const overleafUrl = `https://www.overleaf.com/docs?snip_uri=${encodeURIComponent(dataUri)}&snip_name=${encodeURIComponent(projectName)}.${currentDocType === 'resume' ? 'tex' : 'txt'}`;
+    
+    // Mark as opened
+    sessionStorage.setItem(storageKey, 'true');
+    
+    window.open(overleafUrl, '_blank');
 }
 
 // ===== Template Preview Functions =====

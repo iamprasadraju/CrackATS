@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Form, HTTPException, Query
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 import processor
@@ -523,6 +523,54 @@ async def startup_event():
     migrated = migrate_legacy_database()
     if migrated:
         print(f"✓ Database migrated to: {get_db_path()}")
+
+
+@app.get("/tex-export/{folder}/{filename}")
+async def export_tex_for_overleaf(folder: str, filename: str):
+    """Serve raw TeX content for Overleaf import.
+
+    This endpoint provides raw TeX content that can be imported into Overleaf
+    using the snip_uri parameter. The content is served as plain text with
+    appropriate CORS headers for Overleaf to fetch it.
+    """
+    # Security: Validate filename to prevent directory traversal
+    import re
+
+    if not re.match(r"^[\w\-\.]+$", filename):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    # Map filename to actual file
+    file_map = {
+        "Resume.tex": "Resume.tex",
+        "Cover_Letter.txt": "Cover_Letter.txt",
+    }
+
+    actual_filename = file_map.get(filename)
+    if not actual_filename:
+        raise HTTPException(status_code=404, detail="File type not supported for export")
+
+    # Construct file path
+    file_path = Path.cwd() / folder / actual_filename
+
+    # Security: Ensure path is within current working directory
+    try:
+        file_path.relative_to(Path.cwd())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Invalid file path")
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Read and return content as plain text
+    content = file_path.read_text(encoding="utf-8")
+
+    return PlainTextResponse(
+        content,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Content-Disposition": f'inline; filename="{filename}"',
+        },
+    )
 
 
 @app.get("/api/database/info")
