@@ -308,15 +308,27 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Groq API Key</label>
-                    <input type="password" id="apiKeyInput" placeholder="gsk_...">
+                    <div class="api-key-input-wrapper">
+                        <input type="password" id="apiKeyInput" placeholder="gsk_...">
+                        <button type="button" class="toggle-key-visibility" onclick="toggleApiKeyVisibilityInput()" title="Toggle visibility">
+                            <span id="eyeIcon">👁️</span>
+                        </button>
+                    </div>
                     <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.5rem;">
                         Get your free API key at <a href="https://console.groq.com/keys" target="_blank" style="color: var(--primary);">console.groq.com</a>
                     </p>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="showApiKey" onchange="toggleApiKeyVisibility()"> Show key
-                    </label>
+                    <div id="apiKeyStatus" class="api-key-status" style="display: none;">
+                        <span class="status-icon">✓</span>
+                        <div class="saved-key-container">
+                            <span class="status-text">Current key:</span>
+                            <div class="saved-key-wrapper">
+                                <code id="savedKeyDisplay" class="saved-key-masked">••••••••••••••••••••••••••</code>
+                                <button type="button" class="toggle-saved-key" onclick="toggleSavedKeyVisibility()" title="Toggle saved key visibility">
+                                    <span id="savedKeyEyeIcon">👁️</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div id="apiKeyError" style="color: var(--error); font-size: 0.875rem; display: none; margin-top: 0.5rem;"></div>
             </div>

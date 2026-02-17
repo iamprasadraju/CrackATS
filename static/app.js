@@ -875,10 +875,17 @@ async function executeReset() {
 }
 
 // ===== API Key Management =====
+let currentSavedApiKey = '';
+let savedKeyVisible = false;
+
 function showApiKeyModal() {
     document.getElementById('apiKeyModal').classList.add('active');
     document.getElementById('apiKeyInput').value = '';
     document.getElementById('apiKeyError').style.display = 'none';
+    document.getElementById('apiKeyInput').type = 'password';
+    document.getElementById('eyeIcon').textContent = '👁️';
+    savedKeyVisible = false;
+    document.getElementById('savedKeyEyeIcon').textContent = '👁️';
     document.getElementById('apiKeyInput').focus();
     
     // Load current key if exists
@@ -889,8 +896,10 @@ function closeApiKeyModal() {
     document.getElementById('apiKeyModal').classList.remove('active');
     document.getElementById('apiKeyInput').value = '';
     document.getElementById('apiKeyError').style.display = 'none';
-    document.getElementById('showApiKey').checked = false;
     document.getElementById('apiKeyInput').type = 'password';
+    document.getElementById('eyeIcon').textContent = '👁️';
+    savedKeyVisible = false;
+    document.getElementById('savedKeyEyeIcon').textContent = '👁️';
 }
 
 async function loadCurrentApiKey() {
@@ -899,18 +908,56 @@ async function loadCurrentApiKey() {
         const data = await response.json();
         
         if (data.groq_api_key) {
-            // Show masked version
-            document.getElementById('apiKeyInput').placeholder = '••••••••••••••••••••••••••';
+            currentSavedApiKey = data.groq_api_key;
+            // Show status indicator with masked key
+            document.getElementById('apiKeyStatus').style.display = 'flex';
+            document.getElementById('savedKeyDisplay').textContent = maskApiKey(data.groq_api_key);
+            document.getElementById('apiKeyInput').placeholder = 'Enter new key to update or leave empty';
+        } else {
+            currentSavedApiKey = '';
+            document.getElementById('apiKeyStatus').style.display = 'none';
+            document.getElementById('apiKeyInput').placeholder = 'gsk_...';
         }
     } catch (err) {
         console.error('Failed to load current API key:', err);
+        currentSavedApiKey = '';
+        document.getElementById('apiKeyStatus').style.display = 'none';
     }
 }
 
-function toggleApiKeyVisibility() {
+function maskApiKey(key) {
+    if (!key || key.length < 10) return '••••••••';
+    return key.substring(0, 7) + '••••••••••••••••••••' + key.substring(key.length - 4);
+}
+
+function toggleSavedKeyVisibility() {
+    const display = document.getElementById('savedKeyDisplay');
+    const eyeIcon = document.getElementById('savedKeyEyeIcon');
+    
+    if (savedKeyVisible) {
+        // Hide key
+        display.textContent = maskApiKey(currentSavedApiKey);
+        eyeIcon.textContent = '👁️';
+        savedKeyVisible = false;
+    } else {
+        // Show key
+        display.textContent = currentSavedApiKey;
+        eyeIcon.textContent = '🔒';
+        savedKeyVisible = true;
+    }
+}
+
+function toggleApiKeyVisibilityInput() {
     const input = document.getElementById('apiKeyInput');
-    const checkbox = document.getElementById('showApiKey');
-    input.type = checkbox.checked ? 'text' : 'password';
+    const eyeIcon = document.getElementById('eyeIcon');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.textContent = '🔒';
+    } else {
+        input.type = 'password';
+        eyeIcon.textContent = '👁️';
+    }
 }
 
 async function saveApiKey() {
