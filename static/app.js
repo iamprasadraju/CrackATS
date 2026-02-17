@@ -981,6 +981,24 @@ function confirmResetDatabase() {
     openResetModal();
 }
 
+// ===== Donation Functions =====
+function copyEthAddress() {
+    const ethAddress = '0xdeFE5597a76EFECDc29Fa01798c5470224dB394F';
+    
+    navigator.clipboard.writeText(ethAddress).then(() => {
+        // Show toast notification
+        const toast = document.getElementById('donateToast');
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('ETH Address: ' + ethAddress);
+    });
+}
+
 // ===== Initialization =====
 document.getElementById('jobUrl').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') generateResume();
