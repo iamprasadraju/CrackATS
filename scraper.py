@@ -321,7 +321,7 @@ def _playwright_get(url):
         if COOKIES_FILE.exists():
             import json
 
-            cookies_text = COOKIES_FILE.read_text()
+            cookies_text = COOKIES_FILE.read_text(encoding="utf-8")
             # Simple parsing for Netscape format
             cookies = []
             for line in cookies_text.splitlines():
